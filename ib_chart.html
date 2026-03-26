@@ -1514,7 +1514,7 @@
         </div>
         <div class="ind-row">
           <label for="ind-n">N</label>
-          <input id="ind-n" type="number" min="8" max="8" value="8" readonly title="Fixed at 8 (EMA Structure + order stops)">
+          <input id="ind-n" type="number" min="2" max="200" step="1" value="8" title="EMA period for EMA Structure">
         </div>
         <div class="ind-row">
           <label for="ind-col-channel">Channel</label>
@@ -5390,10 +5390,12 @@ function initChart(){
     if (typeof saved.vwap.color === 'string' && saved.vwap.color.trim()) vwapColor = saved.vwap.color;
   }
   try { vwapSeries?.applyOptions({ color: vwapColor }); } catch (e) {}
-  // Indicator settings (N fixed at 8 — EMA Structure + order panel)
+  // Indicator settings
   if (saved?.indicator) {
     if (typeof saved.indicator.enabled === 'boolean') indEnabled = saved.indicator.enabled;
-    indN = 8;
+    if (Number.isFinite(Number(saved.indicator.n))) {
+      indN = Math.max(2, Math.min(200, Math.round(Number(saved.indicator.n))));
+    }
     if (saved.indicator.name && typeof saved.indicator.name === 'string') indName = saved.indicator.name;
     if (saved.indicator.colors && typeof saved.indicator.colors === 'object') {
       if (typeof saved.indicator.colors.channel === 'string') indColors.channel = saved.indicator.colors.channel;
@@ -5556,8 +5558,9 @@ function setupIndicatorPanel(){
     saveSettings();
   });
   indNEl.addEventListener('change', (e) => {
-    indN = 8;
-    indNEl.value = '8';
+    const v = Number((e.target.value || '').toString().trim());
+    indN = Number.isFinite(v) ? Math.max(2, Math.min(200, Math.round(v))) : indN;
+    indNEl.value = String(indN);
     if (currentBars.length) updateIndicator(resampleBars(currentBars, currentTF));
     saveSettings();
   });

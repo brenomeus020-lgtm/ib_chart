@@ -194,3 +194,8 @@ IB historical source:
 ## License
 
 MIT. See `LICENSE`.
+
+## Buy me a coffe
+
+If you find my work helpful, please consider buying me a coffee. Building this project involves development time and AI token costs.
+buymeacoffee.com/willhu

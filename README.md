@@ -4,6 +4,8 @@ A lightweight local web app (Flask + HTML) that gives you fast, trader-friendly 
 
 This is designed for US stock traders who may not code, but want to **connect charts to their screener and dashboard** (and use “vibe coding” with an AI assistant to glue things together).
 
+
+
 ## What you get (in plain English)
 
 - **A single chart page**: `ib_chart.html`
@@ -106,6 +108,7 @@ If your screener produces a list of symbols (e.g. the top movers), you can send 
 - `http://127.0.0.1:5001/ib_multichart.html?symbols=AAPL,MSFT,NVDA,TSLA&tf=D`
 
 Notes:
+
 - `symbols` is a comma-separated list
 - `tf` can be `D`, `W`, or `M`
 - MultiChart has “Sync symbol” and “Sync D/W/M” toggles in the top bar
@@ -122,6 +125,7 @@ If your dashboard is a local HTML page, you can embed the chart page as an ifram
 ```
 
 If you’re using an AI assistant to “vibe code” the dashboard, tell it:
+
 - you want an iframe block like above
 - your screener output is a list of symbols
 - you want to generate the `symbols=` query string dynamically
@@ -183,4 +187,3 @@ IB historical source:
 ## License
 
 MIT. See `LICENSE`.
-

@@ -1,0 +1,28 @@
+__pycache__/
+*.py[cod]
+
+.venv/
+venv/
+ENV/
+.env
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+*.log
+
+# Local data / caches
+*.db
+*.sqlite
+*.sqlite3
+*.pkl
+*.pickle
+*.jsonl
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+

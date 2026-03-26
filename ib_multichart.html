@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IB MultiChart</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  :root{
+    --bg:#0a0c0f;
+    --bg2:#111418;
+    --bg3:#181d23;
+    --border:#1f2833;
+    --text:#e8f0f8;
+    --muted:#8899aa;
+    --accent:#00d4aa;
+    --tv:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --fs-xs: 11px;
+    --fs-sm: 12px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--tv);overflow:hidden;}
+  body{display:flex;flex-direction:column;}
+  .topbar{
+    height:44px;
+    padding:0 10px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--bg2);
+    border-bottom:1px solid var(--border);
+    font-size:var(--fs-sm);
+  }
+  .logo{
+    font-family:var(--tv);
+    font-size:var(--fs-xs);
+    font-weight:600;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--accent);
+  }
+  .vsep{
+    width:1px;
+    height:18px;
+    background:var(--border);
+  }
+  /* Fancy grid picker (TV-like) */
+  .grid-picker{position:relative;display:flex;align-items:center;gap:10px;}
+  .grid-btn{
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--bg3);border:1px solid var(--border);color:var(--text);
+    padding:6px 10px;border-radius:10px;
+    font-size:var(--fs-sm);font-family:var(--tv);font-weight:600;
+    cursor:pointer;outline:none;
+    transition: border-color .12s ease, background .12s ease;
+  }
+  .grid-btn .btn-ico{
+    width: 20px;
+    height: 16px;
+    display: grid;
+    gap: 2px;
+  }
+  .grid-btn .btn-ico .cell{
+    border-radius: 3px;
+    border-color: rgba(136,153,170,0.55);
+  }
+  .grid-btn:hover{border-color:rgba(0,212,170,0.35);}
+  .grid-btn .chev{width:14px;height:14px;opacity:.8;}
+  .grid-pop{
+    position:absolute;top:calc(100% + 8px);left:0;
+    background:rgba(17,20,24,0.92);
+    border:1px solid rgba(31,40,51,0.9);
+    border-radius:14px;
+    box-shadow:0 12px 30px rgba(0,0,0,0.45);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding:10px;
+    display:none;
+    z-index:50;
+    min-width: 250px;
+  }
+  [data-theme="light"] .grid-pop{
+    background:rgba(255,255,255,0.92);
+    border-color: rgba(208,215,221,0.95);
+    box-shadow:0 12px 30px rgba(0,0,0,0.18);
+  }
+  .grid-pop.open{display:block;}
+  .grid-pop .title{font-size:var(--fs-xs);color:var(--muted);margin:2px 4px 10px;font-weight:600;letter-spacing:1.6px;text-transform:uppercase;}
+  .grid-options{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:10px;
+  }
+  .grid-opt{
+    border:1px solid rgba(31,40,51,0.9);
+    background:rgba(24,29,35,0.7);
+    border-radius:12px;
+    padding:10px 8px;
+    cursor:pointer;
+    user-select:none;
+    transition: transform .12s ease, border-color .12s ease, background .12s ease;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+  }
+  [data-theme="light"] .grid-opt{background:rgba(232,236,240,0.75);border-color:rgba(208,215,221,0.95);}
+  .grid-opt:hover{transform:translateY(-1px);border-color:rgba(0,212,170,0.40);}
+  .grid-opt.active{border-color:rgba(0,212,170,0.70);background:rgba(0,212,170,0.12);}
+  /* no numeric labels */
+  .grid-ico{
+    width:44px;height:32px;
+    display:grid;
+    gap:3px;
+  }
+  .cell{
+    border:1px solid rgba(136,153,170,0.55);
+    border-radius:4px;
+    background:rgba(255,255,255,0.03);
+  }
+  [data-theme="light"] .cell{background:rgba(255,255,255,0.65);border-color:rgba(90,103,117,0.35);}
+  .main{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    padding:6px;
+    gap:6px;
+    min-height:0; /* critical for nested flex + overflow scrolling */
+  }
+  .grid{
+    flex:1;
+    display:grid;
+    gap:6px;
+    height:100%;
+    min-height:0;              /* allow vertical scrolling inside flex layout */
+    overflow-y:auto;          /* panels can exceed viewport height */
+    overflow-x:hidden;
+    align-content:start;      /* keep first row at the top when scrolling */
+    scrollbar-gutter: stable; /* reduce height jitter when toggling scrollbars */
+    /* Hide scrollbar but keep scrolling */
+    -ms-overflow-style: none;  /* IE/old Edge */
+    scrollbar-width: none;     /* Firefox */
+  }
+  .grid::-webkit-scrollbar{ width:0; height:0; } /* Chrome/Edge/Safari */
+  .panel{
+    position:relative;
+    border:1px solid var(--border);
+    background:var(--bg3);
+    overflow:hidden;
+    display:flex;             /* let iframe stretch to panel height */
+  }
+  .panel iframe{
+    border:none;
+    width:100%;
+    height:100%;
+    flex:1;
+  }
+  .sync-controls{
+    margin-left:auto;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    color:var(--muted);
+    font-size:var(--fs-xs);
+    white-space:nowrap;
+  }
+  .sort-controls{
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .sort-btn{
+    background:var(--bg3);
+    border:1px solid var(--border);
+    color:var(--muted);
+    padding:4px 8px;
+    border-radius:10px;
+    font-family:var(--tv);
+    font-size:var(--fs-xs);
+    font-weight:700;
+    cursor:pointer;
+    outline:none;
+    transition: border-color .12s ease, background .12s ease, color .12s ease;
+    white-space:nowrap;
+  }
+  .sort-btn:hover{
+    border-color:rgba(0,212,170,0.35);
+    color:var(--text);
+  }
+  .sort-btn.active{
+    border-color:rgba(0,212,170,0.70);
+    background:rgba(0,212,170,0.12);
+    color:var(--text);
+  }
+  .sync-controls label{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    cursor:pointer;
+    user-select:none;
+  }
+  /* Modern toggle switch (TV-like) */
+  .sync-controls .toggle{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    cursor:pointer;
+    user-select:none;
+    white-space:nowrap;
+  }
+  .sync-controls .toggle input{
+    position:absolute;
+    opacity:0;
+    width:1px;
+    height:1px;
+    pointer-events:none;
+  }
+  .sync-controls .switch{
+    width:38px;
+    height:20px;
+    border-radius:999px;
+    background:rgba(136,153,170,0.22);
+    border:1px solid rgba(136,153,170,0.25);
+    position:relative;
+    flex:0 0 auto;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.18);
+    transition: background .14s ease, border-color .14s ease;
+  }
+  .sync-controls .switch::after{
+    content:'';
+    position:absolute;
+    top:50%;
+    left:2px;
+    width:16px;
+    height:16px;
+    border-radius:999px;
+    transform:translateY(-50%);
+    background:rgba(232,240,248,0.92);
+    box-shadow:0 2px 8px rgba(0,0,0,0.35);
+    transition: left .14s ease, background .14s ease;
+  }
+  .sync-controls .toggle input:focus-visible + .switch{
+    outline: 2px solid rgba(0,212,170,0.55);
+    outline-offset: 2px;
+  }
+  .sync-controls .toggle input:checked + .switch{
+    background: rgba(0,212,170,0.18);
+    border-color: rgba(0,212,170,0.55);
+  }
+  .sync-controls .toggle input:checked + .switch::after{
+    left:20px;
+    background: rgba(0,212,170,0.95);
+  }
+  .sync-controls .toggle .lbl{
+    color: var(--muted);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .sync-controls .toggle:hover .lbl{
+    color: var(--text);
+  }
+</style>
+</head>
+<body>
+  <div class="topbar" id="multi-topbar">
+    <div class="logo">MultiChart</div>
+    <div class="vsep"></div>
+    <div class="grid-picker" id="grid-picker">
+      <span>Grids</span>
+      <button class="grid-btn" id="grid-btn" type="button" aria-haspopup="dialog" aria-expanded="false">
+        <span class="btn-ico" id="grid-btn-ico" aria-hidden="true"></span>
+        <svg class="chev" viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M5 7l5 6 5-6" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <div class="grid-pop" id="grid-pop" role="dialog" aria-label="Select grid layout">
+        <div class="title">Select layout</div>
+        <div class="grid-options" id="grid-options"></div>
+      </div>
+    </div>
+    <div class="sync-controls" id="sync-controls">
+      <div class="sort-controls" id="sort-controls" aria-label="Sort panels">
+        <button type="button" id="sort-btn-change" class="sort-btn" data-col="change">Chg%</button>
+        <button type="button" id="sort-btn-dolvol" class="sort-btn" data-col="dolvol">$Vol</button>
+        <button type="button" id="sort-btn-tags" class="sort-btn" data-col="tags">Tag</button>
+      </div>
+      <label class="toggle" title="When enabled, changing symbol in one panel updates the rest.">
+        <input id="sync-symbol" type="checkbox" checked>
+        <span class="switch" aria-hidden="true"></span>
+        <span class="lbl">Sync symbol</span>
+      </label>
+      <label class="toggle" title="When enabled, changing D/W/M in one panel updates the rest.">
+        <input id="sync-tf" type="checkbox" checked>
+        <span class="switch" aria-hidden="true"></span>
+        <span class="lbl">Sync D/W/M</span>
+      </label>
+    </div>
+  </div>
+  <div class="main">
+    <div id="grid" class="grid"></div>
+  </div>
+
+<script>
+  const GRID_CHOICES = [
+    { n: 1, label: '1',      rows: 1, cols: 1 },
+    { n: 2, label: '2 (1×2)',rows: 1, cols: 2 },
+    { n: 4, label: '4 (2×2)',rows: 2, cols: 2 },
+    { n: 6, label: '6 (2×3)',rows: 2, cols: 3 },
+    { n: 9, label: '9 (3×3)',rows: 3, cols: 3 },
+  ];
+  let gridCount = 4;
+  let syncSymbol = true;
+  let syncTF = true;
+  let lastKnownSymbol = null;
+  let lastKnownTF = 'D';
+  let currentSymbols = []; // symbols shown in panels (order can be sorted)
+  let initialTF = 'D';
+  let isEmbedMode = false;
+  let _userPickedGrid = false;
+  let sortState = { col: 'change', dir: 'desc' };
+  let sortMeta = null; // { [SYM]: { change: number|null, dolvol: number|null } }
+  let _pendingLiveChange = new Set(); // symbols waiting for live changePct
+  let _pendingLiveChangeExpectedCount = 0;
+  let _liveChangeRebuilt = false;
+  let _liveChangeTf = null;
+  let sortToken = null;
+  const iframes = [];
+  const iframeIndexByWindow = new Map();
+  const MSG = {
+    REPORT: 'SCHWAB_SYNC_REPORT',
+    SET: 'SCHWAB_SYNC_SET',
+    ACK: 'SCHWAB_SYNC_ACK',
+  };
+
+  function loadSyncPrefs(){
+    try{
+      syncSymbol = localStorage.getItem('sc_sync_symbol') !== '0';
+      syncTF = localStorage.getItem('sc_sync_tf') !== '0';
+    }catch(e){}
+  }
+
+  function applySyncPrefsToUI(){
+    const el1 = document.getElementById('sync-symbol');
+    const el2 = document.getElementById('sync-tf');
+    if (el1) el1.checked = !!syncSymbol;
+    if (el2) el2.checked = !!syncTF;
+  }
+
+  function broadcastToAll(payload, sourceIdx){
+    if (!payload || (payload.symbol == null && payload.tf == null)) return;
+    for (let i = 0; i < iframes.length; i++){
+      if (i === sourceIdx) continue;
+      try{
+        iframes[i].contentWindow?.postMessage({ type: MSG.SET, payload }, '*');
+      }catch(e){}
+    }
+  }
+
+  function getLayout(n){
+    if(n===1) return [1,1];
+    if(n===2) return [1,2];
+    if(n===4) return [2,2];
+    if(n===6) return [2,3];
+    if(n===9) return [3,3];
+    // For >9, keep 3 columns and grow down by rows.
+    // This matches the expectation: for more than 9 panels, keep extending downward.
+    if (n > 9) return [Math.ceil(n / 3), 3];
+    const r = Math.round(Math.sqrt(n));
+    return [r, Math.ceil(n/r)];
+  }
+
+  function setGridCount(n){
+    _userPickedGrid = true;
+    // In multi-symbol mode, don't exceed available symbols.
+    if (Array.isArray(currentSymbols) && currentSymbols.length) {
+      gridCount = Math.min(n, currentSymbols.length);
+    } else {
+      gridCount = n;
+    }
+    updateGridBtnIcon();
+    // active marker
+    document.querySelectorAll('.grid-opt').forEach(el => {
+      el.classList.toggle('active', parseInt(el.dataset.n, 10) === gridCount);
+    });
+    buildGrid();
+  }
+
+  function updateGridBtnIcon(){
+    const btnIco = document.getElementById('grid-btn-ico');
+    if (!btnIco) return;
+    // Support counts beyond GRID_CHOICES (e.g. >9). Fall back to computed layout.
+    const [rows, cols] = getLayout(gridCount || 4);
+    const r = Math.max(1, Math.min(rows, 3));
+    const c = Math.max(1, Math.min(cols, 3));
+    const cells = r * c;
+    btnIco.innerHTML = '';
+    btnIco.style.gridTemplateRows = `repeat(${r}, 1fr)`;
+    btnIco.style.gridTemplateColumns = `repeat(${c}, 1fr)`;
+    for (let i=0;i<cells;i++){
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      btnIco.appendChild(cell);
+    }
+  }
+
+  function closeGridPop(){
+    const pop = document.getElementById('grid-pop');
+    const btn = document.getElementById('grid-btn');
+    pop.classList.remove('open');
+    btn.setAttribute('aria-expanded', 'false');
+  }
+
+  function toggleGridPop(){
+    const pop = document.getElementById('grid-pop');
+    const btn = document.getElementById('grid-btn');
+    const open = !pop.classList.contains('open');
+    pop.classList.toggle('open', open);
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function renderGridOptions(){
+    const host = document.getElementById('grid-options');
+    host.innerHTML = '';
+    for (const c of GRID_CHOICES){
+      const opt = document.createElement('div');
+      opt.className = 'grid-opt';
+      opt.dataset.n = String(c.n);
+      opt.title = c.label;
+
+      const ico = document.createElement('div');
+      ico.className = 'grid-ico';
+      ico.style.gridTemplateRows = `repeat(${c.rows}, 1fr)`;
+      ico.style.gridTemplateColumns = `repeat(${c.cols}, 1fr)`;
+      for (let i=0;i<c.rows*c.cols;i++){
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        ico.appendChild(cell);
+      }
+
+      opt.appendChild(ico);
+      opt.addEventListener('click', () => {
+        setGridCount(c.n);
+        closeGridPop();
+      });
+      host.appendChild(opt);
+    }
+    // mark initial active (only matches known choices, that's fine for >9)
+    document.querySelectorAll('.grid-opt').forEach(el => {
+      el.classList.toggle('active', parseInt(el.dataset.n, 10) === gridCount);
+    });
+  }
+
+  function buildGrid(){
+    const gridEl = document.getElementById('grid');
+    const count = gridCount || 4;
+    const [rows, cols] = getLayout(count);
+    // Only allow vertical scrolling when we have more than 2 rows.
+    // For 2x2 (rows<=2), use pure `1fr` so panel height always fills the viewport
+    // and never depends on min-height math (avoids scrollbar-induced jitter).
+    const computed = getComputedStyle(gridEl);
+    const rowGap = parseFloat(computed.rowGap || computed.gap || '6') || 6;
+
+    gridEl.style.overflowY = rows <= 2 ? 'hidden' : 'auto';
+    gridEl.scrollTop = 0;
+
+    if (rows <= 2) {
+      gridEl.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+    } else {
+      // Use 2x2 panel height as the minimum height for layouts with >2 rows.
+      // Measure main's inner height (grid height) rather than using gridEl.clientHeight,
+      // since scrollbar presence can affect it.
+      const mainEl = document.querySelector('.main');
+      const mainStyle = mainEl ? getComputedStyle(mainEl) : null;
+      const padT = mainStyle ? (parseFloat(mainStyle.paddingTop) || 0) : 6;
+      const padB = mainStyle ? (parseFloat(mainStyle.paddingBottom) || 0) : 6;
+      const gridHeight = mainEl
+        ? Math.max(0, mainEl.clientHeight - padT - padB)
+        : Math.max(0, window.innerHeight - 44 - 12);
+
+      const panelMinHeight = Math.max(0, Math.round((gridHeight - rowGap) / 2));
+      gridEl.style.gridTemplateRows = `repeat(${rows}, minmax(${panelMinHeight}px, 1fr))`;
+    }
+    gridEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    gridEl.innerHTML = '';
+    iframes.length = 0;
+    iframeIndexByWindow.clear();
+    // IMPORTANT: grid rebuild creates brand-new iframes, so previous ACK cache is invalid.
+    // If we don't reset it, postInitialSet() may think the new iframe already applied the symbol,
+    // and skip sending SET, leaving all panels at the same default (schwab_lastsym).
+    try { window.__mcAckByIdx = {}; } catch (e) {}
+    const visibleSymbols = Array.isArray(currentSymbols) ? currentSymbols.slice(0, count) : [];
+    for(let i=0;i<count;i++){
+      const panel = document.createElement('div');
+      panel.className = 'panel';
+      const iframe = document.createElement('iframe');
+      // Use full single-chart page for maximum compatibility
+      // multichart=1 lets ib_chart.html know it's running inside multichart
+      // so we can force volume pane layout options.
+      // (We intentionally do NOT use embed=1 here to avoid iframe layout issues.)
+      iframe.src = '/ib_chart.html?multichart=1';
+
+      // Set initial per-panel symbol from URL, without relying on cross-panel sync.
+      // We wait for iframe load, then send a few retries to handle timing races (listener readiness, heavy initial load).
+      function postInitialSet(payload, idx){
+        if (!payload || (payload.symbol == null && payload.tf == null)) return;
+        const key = ((payload.symbol || '') + '|' + (payload.tf || ''));
+        let tries = 0;
+        // More retries: wait for chart to be truly ready (ACK now comes after load completes).
+        const maxTries = 8;
+        const delays = [0, 180, 420, 900, 1600, 2400, 3600, 5200];
+        function alreadyAcked(){
+          try{
+            const map = window.__mcAckByIdx || {};
+            return typeof idx === 'number' && map[idx] === key;
+          }catch(e){
+            return false;
+          }
+        }
+        function sendOnce(){
+          if (alreadyAcked()) return;
+          tries += 1;
+          try{
+            iframe.contentWindow?.postMessage({ type: MSG.SET, payload }, '*');
+          }catch(e){}
+          if (tries >= maxTries) return;
+          setTimeout(sendOnce, delays[Math.min(tries, delays.length - 1)]);
+        }
+        sendOnce();
+      }
+
+      if (typeof visibleSymbols[i] === 'string' && visibleSymbols[i].trim()) {
+        const sym = visibleSymbols[i].trim().toUpperCase();
+        iframe.addEventListener('load', () => {
+          postInitialSet({ symbol: sym, tf: initialTF }, i);
+        }, { once: true });
+      } else if (typeof initialTF === 'string' && initialTF) {
+        // Still set timeframe (same for all) if requested by caller.
+        iframe.addEventListener('load', () => {
+          postInitialSet({ tf: initialTF }, i);
+        }, { once: true });
+      }
+
+      iframes.push(iframe);
+      panel.appendChild(iframe);
+      gridEl.appendChild(panel);
+      iframeIndexByWindow.set(iframe.contentWindow, i);
+    }
+    // Ensure grid button icon is populated on first load too.
+    updateGridBtnIcon();
+  }
+
+  window.addEventListener('message', (event) => {
+    const data = event.data;
+    if (!data || typeof data !== 'object') return;
+    if (data.type !== MSG.REPORT && data.type !== MSG.ACK) return;
+
+    const payload = data.payload || {};
+    const sym = typeof payload.symbol === 'string' ? payload.symbol.toUpperCase() : null;
+    const tf = (payload.tf === 'D' || payload.tf === 'W' || payload.tf === 'M') ? payload.tf : null;
+    if (!sym && !tf) return;
+
+    const sourceWin = event.source;
+    let sourceIdx = iframeIndexByWindow.get(sourceWin);
+    if (sourceIdx == null) {
+      sourceIdx = iframes.findIndex(f => f?.contentWindow === sourceWin);
+      if (sourceIdx < 0) sourceIdx = undefined;
+    }
+
+    if (data.type === MSG.ACK) {
+      if (typeof sourceIdx === 'number') {
+        try{
+          const key = (sym || '') + '|' + (tf || '');
+          window.__mcAckByIdx = window.__mcAckByIdx || {};
+          window.__mcAckByIdx[sourceIdx] = key;
+        }catch(e){}
+      }
+      return;
+    }
+
+    // Always update last known state, regardless of toggles.
+    if (sym) lastKnownSymbol = sym;
+    if (tf) lastKnownTF = tf;
+
+    const applyPayload = {};
+    if (syncSymbol && sym) applyPayload.symbol = sym;
+    if (syncTF && tf) applyPayload.tf = tf;
+
+    // If sync is enabled for one part but the report didn't include it, don't broadcast.
+    if (Object.keys(applyPayload).length === 0) return;
+    broadcastToAll(applyPayload, sourceIdx);
+
+    // Live sorting update for Chg% based on child chart's last-2 K lines.
+    // (Only runs for visible panels after we trigger applySortAndRebuild.)
+    if (data.type === MSG.REPORT && sortState.col === 'change') {
+      const payloadChangePct = payload && payload.changePct;
+      if (sym && payloadChangePct != null && _pendingLiveChange instanceof Set) {
+        const num = Number(payloadChangePct);
+        if (Number.isFinite(num)) {
+          sortMeta = sortMeta && typeof sortMeta === 'object' ? sortMeta : {};
+          sortMeta[sym] = sortMeta[sym] || {};
+          sortMeta[sym].change = num;
+        }
+        if (tf && _liveChangeTf && tf !== _liveChangeTf) {
+          // Timeframe changed in child panel; start a new live-change batch.
+          try{
+            if (sortState.col === 'change') {
+              const expected = Array.isArray(currentSymbols) ? currentSymbols.slice(0, gridCount) : [];
+              _pendingLiveChange = new Set(expected);
+              _pendingLiveChangeExpectedCount = expected.length;
+              _liveChangeRebuilt = false;
+              _liveChangeTf = tf;
+            }
+          }catch(e){}
+        }
+        // If timeframe matches (or hasn't been set yet), count this symbol.
+        if (tf == null || !_liveChangeTf || tf === _liveChangeTf) {
+          _pendingLiveChange.delete(sym);
+        }
+      }
+
+      if (!_liveChangeRebuilt && _pendingLiveChangeExpectedCount > 0 && _pendingLiveChange.size === 0) {
+        _liveChangeRebuilt = true;
+        try{
+          // Re-sort currentSymbols using updated sortMeta[sym].change
+          sortSymbolsInPlace();
+          buildGrid();
+        }catch(e){}
+      }
+    }
+  });
+
+  document.getElementById('grid-btn').addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleGridPop();
+  });
+  document.addEventListener('pointerdown', (e) => {
+    const pop = document.getElementById('grid-pop');
+    const btn = document.getElementById('grid-btn');
+    if (!pop.classList.contains('open')) return;
+    if (pop.contains(e.target) || btn.contains(e.target)) return;
+    closeGridPop();
+  }, true);
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeGridPop();
+  });
+
+  window.addEventListener('load', () => {
+    loadSyncPrefs();
+    const urlParams = new URLSearchParams(window.location.search);
+    const embedFlag = urlParams.get('embed') === '1' || urlParams.get('iframe') === '1';
+    // Only hide controls when actually embedded (inside an iframe), not when opened as a top-level page.
+    try{
+      isEmbedMode = embedFlag && window.self !== window.top;
+    }catch(e){
+      isEmbedMode = embedFlag;
+    }
+
+    // Parse initial per-panel symbols.
+    // Example: /schwab_multichart.html?embed=1&symbols=AAPL,MSFT,TSLA&tf=D
+    const symbolsParam = urlParams.get('symbols');
+    // Optional: force grid count from caller (e.g., trades_chart theme multi)
+    // Example: &grid=12 => build 12 panels (3x4) if enough symbols.
+    const gridParam = urlParams.get('grid') || urlParams.get('gridCount') || urlParams.get('n');
+    // In multi-symbol mode, we MUST disable localStorage-based cross-panel sync used by schwab_chart.html,
+    // otherwise each iframe will react to `schwab_lastsym` changes coming from other pages and keep reloading.
+    // We'll restore previous values on unload to avoid surprising other windows.
+    const _prevScSyncSymbol = (() => { try { return localStorage.getItem('sc_sync_symbol'); } catch (e) { return null; } })();
+    const _prevScSyncTf = (() => { try { return localStorage.getItem('sc_sync_tf'); } catch (e) { return null; } })();
+    function _restoreScSync() {
+      try {
+        if (_prevScSyncSymbol == null) localStorage.removeItem('sc_sync_symbol');
+        else localStorage.setItem('sc_sync_symbol', _prevScSyncSymbol);
+      } catch (e) {}
+      try {
+        if (_prevScSyncTf == null) localStorage.removeItem('sc_sync_tf');
+        else localStorage.setItem('sc_sync_tf', _prevScSyncTf);
+      } catch (e) {}
+    }
+    window.addEventListener('beforeunload', _restoreScSync);
+
+    if (typeof symbolsParam === 'string' && symbolsParam.trim()) {
+      currentSymbols = symbolsParam
+        .split(',')
+        .map(s => (s || '').trim().toUpperCase())
+        .filter(Boolean);
+      if (currentSymbols.length) {
+        gridCount = currentSymbols.length;
+      }
+
+      // When caller provides a per-panel symbol list, default to "no cross-panel sync"
+      // so each iframe keeps its own symbol.
+      if (urlParams.get('syncSymbol') == null) syncSymbol = false;
+      if (urlParams.get('syncTF') == null) syncTF = false;
+      // Also disable schwab_chart.html's storage listener.
+      try { localStorage.setItem('sc_sync_symbol', '0'); } catch (e) {}
+      try { localStorage.setItem('sc_sync_tf', syncTF ? '1' : '0'); } catch (e) {}
+    }
+
+    // Apply forced grid AFTER symbols parsed (so we can clamp to symbol count).
+    if (gridParam != null && String(gridParam).trim() !== '') {
+      const n = parseInt(String(gridParam), 10);
+      if (Number.isFinite(n) && n > 0) {
+        gridCount = Array.isArray(currentSymbols) && currentSymbols.length ? Math.min(n, currentSymbols.length) : n;
+        // Treat as an explicit layout choice (caller-driven), so we don't override it later.
+        _userPickedGrid = true;
+      }
+    }
+
+    // Parse sort payload (for Themes-like sorting: $Vol / Chg% / Tag).
+    // Caller should set localStorage item keyed by sortToken.
+    sortToken = urlParams.get('sortToken');
+    if (sortToken) {
+      try{
+        const raw = localStorage.getItem('sc_multichart_sort_meta_' + sortToken);
+        if (raw) {
+          const payload = JSON.parse(raw);
+          if (payload && payload.meta && typeof payload.meta === 'object') sortMeta = payload.meta;
+          if (payload && payload.sortCfg && payload.sortCfg.col && payload.sortCfg.dir) {
+            sortState = { col: payload.sortCfg.col, dir: payload.sortCfg.dir };
+          }
+        }
+      }catch(e){}
+    }
+
+    // Optional URL override.
+    const sortColParam = urlParams.get('sortCol');
+    const sortDirParam = urlParams.get('sortDir');
+    if (sortColParam) sortState.col = sortColParam;
+    if (sortDirParam === 'asc' || sortDirParam === 'desc') sortState.dir = sortDirParam;
+
+    const tfParam = urlParams.get('tf');
+    if (tfParam === 'D' || tfParam === 'W' || tfParam === 'M') {
+      initialTF = tfParam;
+      lastKnownTF = tfParam;
+    }
+
+    applySyncPrefsToUI();
+
+    if (isEmbedMode) {
+      const topbar = document.getElementById('multi-topbar');
+      if (topbar) topbar.style.display = 'none';
+      const gridEl = document.getElementById('grid');
+      if (gridEl) gridEl.style.padding = '0';
+    }
+
+    document.getElementById('sync-symbol')?.addEventListener('change', (e) => {
+      syncSymbol = !!e.target.checked;
+      try{ localStorage.setItem('sc_sync_symbol', syncSymbol ? '1' : '0'); }catch(err){}
+      if (syncSymbol && lastKnownSymbol){
+        broadcastToAll({ symbol: lastKnownSymbol }, -1);
+      }
+    });
+    document.getElementById('sync-tf')?.addEventListener('change', (e) => {
+      syncTF = !!e.target.checked;
+      try{ localStorage.setItem('sc_sync_tf', syncTF ? '1' : '0'); }catch(err){}
+      if (syncTF && lastKnownTF){
+        broadcastToAll({ tf: lastKnownTF }, -1);
+      }
+    });
+
+    const sortBtnChange = document.getElementById('sort-btn-change');
+    const sortBtnDolvol = document.getElementById('sort-btn-dolvol');
+    const sortBtnTags = document.getElementById('sort-btn-tags');
+    let _tagMetaLoadPromise = null;
+
+    function _computeTagRank(tagsArr){
+      if (!Array.isArray(tagsArr) || !tagsArr.length) return 999;
+      const has = {};
+      tagsArr.forEach(t => { has[String(t || '').trim().toUpperCase()] = true; });
+      if (has.T1) return 1;
+      if (has.T2) return 2;
+      if (has.T3) return 3;
+      return 999;
+    }
+
+    function ensureTagMetaLoaded(){
+      // If sortMeta already has any non-999 tagRank, assume it's good.
+      try{
+        if (sortMeta && typeof sortMeta === 'object') {
+          const keys = Object.keys(sortMeta);
+          for (let i=0;i<Math.min(keys.length, 30);i++){
+            const k = keys[i];
+            const tr = sortMeta[k] ? sortMeta[k].tagRank : null;
+            if (tr != null && Number(tr) >= 1 && Number(tr) <= 3) return Promise.resolve(true);
+          }
+        }
+      }catch(e){}
+      if (_tagMetaLoadPromise) return _tagMetaLoadPromise;
+      _tagMetaLoadPromise = fetch('/api/rank/load', { method: 'GET' })
+        .then(r => r.json())
+        .then(res => {
+          const rows = (res && res.rows && Array.isArray(res.rows)) ? res.rows : [];
+          if (!rows.length) return false;
+          if (!sortMeta || typeof sortMeta !== 'object') sortMeta = {};
+          rows.forEach(row => {
+            const sym = (row && row.symbol ? String(row.symbol) : '').trim().toUpperCase();
+            if (!sym) return;
+            let tags = row.tags;
+            if (typeof tags === 'string') {
+              try { tags = JSON.parse(tags); } catch(e) { tags = []; }
+            }
+            if (!Array.isArray(tags)) tags = [];
+            const tr = _computeTagRank(tags);
+            sortMeta[sym] = sortMeta[sym] || {};
+            sortMeta[sym].tagRank = tr;
+          });
+          return true;
+        })
+        .catch(() => false);
+      return _tagMetaLoadPromise;
+    }
+
+    function updateSortButtonsUI(){
+      const dirArrow = sortState.dir === 'asc' ? ' ▲' : ' ▼';
+      const active = sortState.col;
+      if (sortBtnChange) {
+        sortBtnChange.classList.toggle('active', active === 'change');
+        sortBtnChange.textContent = active === 'change' ? 'Chg%' + dirArrow : 'Chg%';
+      }
+      if (sortBtnDolvol) {
+        sortBtnDolvol.classList.toggle('active', active === 'dolvol');
+        sortBtnDolvol.textContent = active === 'dolvol' ? '$Vol' + dirArrow : '$Vol';
+      }
+      if (sortBtnTags) {
+        sortBtnTags.classList.toggle('active', active === 'tags');
+        sortBtnTags.textContent = active === 'tags' ? 'Tag' + dirArrow : 'Tag';
+      }
+    }
+
+    function getSortVal(sym){
+      if (sortState.col === 'change') {
+        return sortMeta && sortMeta[sym] ? (sortMeta[sym].change ?? null) : null;
+      }
+      if (sortState.col === 'dolvol') {
+        return sortMeta && sortMeta[sym] ? (sortMeta[sym].dolvol ?? null) : null;
+      }
+      if (sortState.col === 'tags') {
+        // T1 -> T2 -> T3 -> none (rank_data.csv tags)
+        return sortMeta && sortMeta[sym] ? (sortMeta[sym].tagRank ?? null) : null;
+      }
+      return sym;
+    }
+
+    function sortSymbolsInPlace(){
+      if (!Array.isArray(currentSymbols) || !currentSymbols.length) return;
+      if ((!sortMeta || Object.keys(sortMeta).length === 0) && sortState.col !== 'tags') return;
+
+      var dir = sortState.dir === 'asc' ? 1 : -1;
+      currentSymbols.sort(function(a, b){
+        // Special stable sort for Tag:
+        // primary: T1 -> T2 -> T3 -> none (or reverse when dir=desc)
+        // secondary: Chg% desc (so within same tag the movers float up)
+        // tertiary: symbol asc
+        if (sortState.col === 'tags') {
+          var ra = (sortMeta && sortMeta[a] && sortMeta[a].tagRank != null) ? Number(sortMeta[a].tagRank) : 999;
+          var rb = (sortMeta && sortMeta[b] && sortMeta[b].tagRank != null) ? Number(sortMeta[b].tagRank) : 999;
+          if (!Number.isFinite(ra)) ra = 999;
+          if (!Number.isFinite(rb)) rb = 999;
+          if (ra !== rb) return (ra < rb ? -1 : 1) * dir;
+          // secondary by $Vol desc within same tag (independent of dir for tags)
+          var va = (sortMeta && sortMeta[a] && sortMeta[a].dolvol != null) ? Number(sortMeta[a].dolvol) : null;
+          var vb = (sortMeta && sortMeta[b] && sortMeta[b].dolvol != null) ? Number(sortMeta[b].dolvol) : null;
+          if (va == null && vb == null) {
+            // fallthrough
+          } else if (va == null) {
+            return 1;
+          } else if (vb == null) {
+            return -1;
+          } else if (va !== vb) {
+            return vb - va;
+          }
+          // tertiary: symbol
+          if (a < b) return -1;
+          if (a > b) return 1;
+          return 0;
+        }
+        var va = getSortVal(a);
+        var vb = getSortVal(b);
+        if (va == null && vb == null) return 0;
+        if (va == null) return 1;
+        if (vb == null) return -1;
+        if (typeof va === 'string' || typeof vb === 'string') {
+          va = String(va); vb = String(vb);
+          if (va < vb) return -1 * dir;
+          if (va > vb) return 1 * dir;
+          return 0;
+        }
+        if (va < vb) return -1 * dir;
+        if (va > vb) return 1 * dir;
+        return 0;
+      });
+    }
+
+    function applySortAndRebuild(){
+      sortSymbolsInPlace();
+    // Default behavior: when caller provides a symbol list, show ALL symbols unless user explicitly picked a smaller grid.
+    if (!_userPickedGrid && Array.isArray(currentSymbols) && currentSymbols.length) {
+      gridCount = currentSymbols.length;
+    }
+      // keep gridCount within visible symbol count
+      if (Array.isArray(currentSymbols) && currentSymbols.length && gridCount > currentSymbols.length) {
+        gridCount = currentSymbols.length;
+      }
+      updateSortButtonsUI();
+      renderGridOptions();
+      buildGrid();
+
+      // Prepare live sorting updates for Chg% (avg% equivalent).
+      // We will replace sortMeta[sym].change with changePct reported by each schwab_chart iframe
+      // (computed from last 2 K lines close in the current timeframe).
+      if (sortState.col === 'change') {
+        try{
+          const expected = Array.isArray(currentSymbols) ? currentSymbols.slice(0, gridCount) : [];
+          _pendingLiveChange = new Set(expected);
+          _pendingLiveChangeExpectedCount = expected.length;
+          _liveChangeRebuilt = false;
+          _liveChangeTf = lastKnownTF;
+        }catch(e){}
+      }
+    }
+
+    if (sortBtnChange) {
+      sortBtnChange.addEventListener('click', function(){
+        if (sortState.col === 'change' && sortState.dir === 'desc') sortState.dir = 'asc';
+        else { sortState.col = 'change'; sortState.dir = 'desc'; }
+        applySortAndRebuild();
+      });
+    }
+    if (sortBtnDolvol) {
+      sortBtnDolvol.addEventListener('click', function(){
+        if (sortState.col === 'dolvol' && sortState.dir === 'desc') sortState.dir = 'asc';
+        else { sortState.col = 'dolvol'; sortState.dir = 'desc'; }
+        applySortAndRebuild();
+      });
+    }
+    if (sortBtnTags) {
+      sortBtnTags.addEventListener('click', function(){
+        if (sortState.col === 'tags' && sortState.dir === 'asc') sortState.dir = 'desc';
+        else { sortState.col = 'tags'; sortState.dir = 'asc'; }
+        // Ensure we actually have tagRank; otherwise tag sorting appears "stuck".
+        ensureTagMetaLoaded().then(() => applySortAndRebuild());
+      });
+    }
+
+    updateSortButtonsUI();
+    // initial sort + build
+    // If caller provided a symbol list, default to showing ALL symbols (unless user picked a layout later).
+    if (!_userPickedGrid && Array.isArray(currentSymbols) && currentSymbols.length) {
+      gridCount = currentSymbols.length;
+    }
+    applySortAndRebuild();
+  });
+</script>
+</body>
+</html>
+

